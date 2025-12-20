@@ -1,0 +1,24 @@
+# Core dependencies
+apache-airflow==2.7.3
+pandas==2.1.1
+pyarrow==13.0.0
+boto3==1.29.7
+psycopg2-binary==2.9.7
+SQLAlchemy==2.0.21
+python-dotenv==1.0.0
+
+# Data processing
+numpy==1.24.3
+requests==2.31.0
+
+# Monitoring
+prometheus-client==0.17.1
+
+# Testing
+pytest==7.4.2
+pytest-mock==3.11.1
+
+# Utilities
+python-slugify==8.0.1
+cryptography==41.0.4
+watchdog==3.0.0
