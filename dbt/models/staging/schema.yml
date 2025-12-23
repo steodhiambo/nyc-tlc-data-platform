@@ -1,0 +1,91 @@
+version: 2
+
+sources:
+  - name: raw_data
+    description: Raw NYC TLC taxi trip data from the original schema
+    schema: taxi_data
+    tables:
+      - name: yellow_tripdata
+        description: Raw yellow taxi trip data
+        columns:
+          - name: id
+            description: Primary key for the trip record
+            tests:
+              - unique
+              - not_null
+          - name: vendor_id
+            description: Code indicating the TPEP provider
+          - name: pickup_datetime
+            description: Date and time when the meter was engaged
+            tests:
+              - not_null
+          - name: dropoff_datetime
+            description: Date and time when the meter was disengaged
+            tests:
+              - not_null
+          - name: passenger_count
+            description: Number of passengers in the vehicle
+          - name: trip_distance
+            description: Trip distance in miles
+          - name: pickup_location_id
+            description: TLC Taxi Zone in which the trip began
+          - name: dropoff_location_id
+            description: TLC Taxi Zone in which the trip ended
+          - name: fare_amount
+            description: Time and distance fare calculated by the meter
+          - name: total_amount
+            description: Total amount charged to the passenger
+          - name: year
+            description: Year of the trip for partitioning
+          - name: month
+            description: Month of the trip for partitioning
+
+      - name: green_tripdata
+        description: Raw green taxi trip data
+        columns:
+          - name: id
+            description: Primary key for the trip record
+            tests:
+              - unique
+              - not_null
+          - name: vendor_id
+            description: Code indicating the TPEP provider
+          - name: pickup_datetime
+            description: Date and time when the meter was engaged
+            tests:
+              - not_null
+          - name: dropoff_datetime
+            description: Date and time when the meter was disengaged
+            tests:
+              - not_null
+          - name: passenger_count
+            description: Number of passengers in the vehicle
+          - name: trip_distance
+            description: Trip distance in miles
+          - name: pickup_location_id
+            description: TLC Taxi Zone in which the trip began
+          - name: dropoff_location_id
+            description: TLC Taxi Zone in which the trip ended
+          - name: fare_amount
+            description: Time and distance fare calculated by the meter
+          - name: total_amount
+            description: Total amount charged to the passenger
+          - name: year
+            description: Year of the trip for partitioning
+          - name: month
+            description: Month of the trip for partitioning
+
+      - name: taxi_zone_lookup
+        description: Lookup table for taxi zones
+        columns:
+          - name: location_id
+            description: Unique identifier for the taxi zone
+            tests:
+              - unique
+              - not_null
+          - name: borough
+            description: Borough of the taxi zone
+          - name: zone
+            description: Name of the taxi zone
+          - name: service_zone
+            description: Service zone type
