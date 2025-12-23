@@ -1,0 +1,82 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Airflow Metrics",
+    "tags": ["airflow"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "DAG Runs",
+        "type": "stat",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "count(airflow_dag_run_status_count)",
+            "legendFormat": "Total DAG Runs"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {},
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Task Instance Status",
+        "type": "graph",
+        "gridPos": {
+          "x": 6,
+          "y": 0,
+          "w": 12,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "airflow_task_instance_count",
+            "legendFormat": "{{state}}"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Worker Health",
+        "type": "singlestat",
+        "gridPos": {
+          "x": 0,
+          "y": 6,
+          "w": 6,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "airflow_worker_alive_gauge",
+            "legendFormat": "Alive Workers"
+          }
+        ]
+      }
+    ],
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "refresh": "5s"
+  }
+}

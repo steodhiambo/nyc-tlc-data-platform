@@ -1,0 +1,96 @@
+groups:
+- name: nyc_tlc_alerts
+  rules:
+  # Airflow-related alerts
+  - alert: AirflowDown
+    expr: up{job="airflow"} == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Airflow is down"
+      description: "Airflow service has been down for more than 2 minutes."
+
+  - alert: AirflowHighErrorRate
+    expr: rate(airflow_task_instance_count{state="failed"}[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Airflow task failure rate"
+      description: "More than 10% of Airflow tasks are failing over the last 5 minutes."
+
+  # System resource alerts
+  - alert: HighCPUUsage
+    expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage on instance {{ $labels.instance }}"
+      description: "CPU usage is above 80% on instance {{ $labels.instance }}."
+
+  - alert: HighMemoryUsage
+    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage on instance {{ $labels.instance }}"
+      description: "Memory usage is above 85% on instance {{ $labels.instance }}."
+
+  - alert: DiskSpaceLow
+    expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 85
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Disk space low on {{ $labels.instance }} in {{ $labels.mountpoint }}"
+      description: "Disk usage is above 85% on {{ $labels.mountpoint }} of instance {{ $labels.instance }}."
+
+  # PostgreSQL database alerts
+  - alert: PostgreSQLDown
+    expr: up{job="postgres-exporter"} == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "PostgreSQL database is down"
+      description: "PostgreSQL database has been down for more than 2 minutes."
+
+  - alert: PostgreSQLHighConnections
+    expr: pg_stat_activity_count > 0.8 * pg_settings_max_connections
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High number of PostgreSQL connections"
+      description: "PostgreSQL is using more than 80% of its maximum connections."
+
+  - alert: PostgreSQLSlowQueries
+    expr: histogram_quantile(0.95, rate(pg_query_duration_seconds_bucket[5m])) > 5
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "PostgreSQL slow queries detected"
+      description: "95th percentile of PostgreSQL queries taking more than 5 seconds."
+
+  # Data pipeline alerts
+  - alert: PipelineDataDelay
+    expr: time() - max by(pipeline_name) (max_over_time(taxi_data_pipeline_logs_timestamp[24h])) > 3600
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Pipeline data delay detected"
+      description: "Pipeline {{ $labels.pipeline_name }} has not processed data for more than 1 hour."
+
+  - alert: HighDataQualityIssues
+    expr: avg by(table_name) (taxi_data_quality_metrics{metric_name="null_pickup_datetime_pct"}) > 5
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High percentage of null pickup datetime values"
+      description: "More than 5% of records in {{ $labels.table_name }} have null pickup datetime values."

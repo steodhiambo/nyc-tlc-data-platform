@@ -1,0 +1,315 @@
+# Alertmanager configuration for the NYC TLC Data Platform
+# This configuration defines how alerts are routed, grouped, and sent
+
+global:
+  # The smarthost and SMTP sender used for notifications
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@nyc-tlc-data-platform.com'
+  smtp_auth_username: '{{ template "smtp_auth_username" . }}'
+  smtp_auth_password: '{{ template "smtp_auth_password" . }}'
+  # Use either smtp_auth_identity or smtp_hello (or neither)
+  smtp_hello: 'nyc-tlc-data-platform.com'
+
+# The root route on which each incoming alert enters
+route:
+  # The labels by which incoming alerts are grouped together. For example,
+  # multiple alerts coming in for cluster=A and alertname=LatencyHigh would
+  # be batched into a single group.
+  group_by: ['alertname', 'cluster', 'service']
+
+  # When a new group of alerts is created by an incoming alert, wait at
+  # least 'group_wait' to send the initial notification.
+  # This way ensures that you get multiple alerts for the same group that start
+  # firing shortly after another are batched together on the first notification.
+  group_wait: 30s
+
+  # When the first notification was sent, wait 'group_interval' to send a batch
+  # of new alerts that started firing for that group.
+  group_interval: 5m
+
+  # If an alert has successfully been sent, wait 'repeat_interval' to resend them.
+  repeat_interval: 3h
+
+  # A default receiver
+  receiver: default
+
+  # All the above configurations combined together will result in
+  # a route tree that looks like the following:
+  # 
+  #       root route
+  #  ┌─────────────────────────────────────────────────────────────────┐
+  #  │ match(matchers) match(matchers) match(matchers) match(matchers) │
+  #  │ groups      groups      groups      groups                    │
+  #  │ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐               │
+  #  │ │receiver │ │receiver │ │receiver │ │receiver │               │
+  #  │ │         │ │         │ │         │ │         │               │
+  #  │ │   ...   │ │   ...   │ │   ...   │ │   ...   │               │
+  #  │ └─────────┘ └─────────┘ └─────────┘ └─────────┘               │
+  #  └─────────────────────────────────────────────────────────────────┘
+
+  # The child route trees for specific services
+  routes:
+    # Specific route for Airflow alerts
+    - matchers:
+        - severity="critical"
+      receiver: critical_alerts
+      repeat_interval: 1h
+    - matchers:
+        - severity="warning"
+      receiver: warning_alerts
+      repeat_interval: 4h
+    - matchers:
+        - alertname=~"Airflow.*"
+      receiver: airflow_alerts
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 1h
+    - matchers:
+        - alertname=~"S3.*"
+      receiver: s3_alerts
+      repeat_interval: 2h
+    - matchers:
+        - alertname=~"RDS.*"
+      receiver: rds_alerts
+      repeat_interval: 2h
+
+# Inhibition rules allow to mute a set of alerts given that another alert is
+# firing.
+# We use this to mute any warning-level notifications if the same alert is
+# already critical.
+inhibit_rules:
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    # Apply inhibition if the alertname is the same.
+    equal: ['alertname', 'cluster', 'service']
+
+# The 'receivers' parameter is a list of notification integrations.
+receivers:
+  - name: 'default'
+    email_configs:
+      - to: 'data-team@example.com'
+        headers:
+          subject: 'NYC TLC Data Platform Alert: {{ .CommonLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }} [{{ .Labels.severity }}]
+          *Description:* {{ .Annotations.description }}
+          *Value:* {{ .Labels.value }}
+          *Details:*
+          {{ range .Labels.SortedPairs }}  *{{ .Name }}: {{ .Value }}
+          {{ end }}
+          {{ end }}
+        html: |
+          <h2>NYC TLC Data Platform Alert</h2>
+          <table border="1" cellpadding="5" cellspacing="0">
+          <tr><th>Alert</th><td>{{ .CommonLabels.alertname }}</td></tr>
+          <tr><th>Severity</th><td>{{ .CommonLabels.severity }}</td></tr>
+          <tr><th>Description</th><td>{{ .CommonAnnotations.summary }}</td></tr>
+          </table>
+          
+          {{ range .Alerts }}
+          <h3>Alert Details</h3>
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <table border="1" cellpadding="5" cellspacing="0">
+          {{ range .Labels.SortedPairs }}
+          <tr><th>{{ .Name }}</th><td>{{ .Value }}</td></tr>
+          {{ end }}
+          </table>
+          {{ end }}
+  
+  - name: 'critical_alerts'
+    email_configs:
+      - to: 'data-team-critical@example.com,ops-team@example.com'
+        headers:
+          subject: '🚨 CRITICAL NYC TLC Data Platform Alert: {{ .CommonLabels.alertname }}'
+        html: |
+          <h1 style="color: red;">🚨 CRITICAL ALERT 🚨</h1>
+          <h2>NYC TLC Data Platform</h2>
+          <table border="1" cellpadding="5" cellspacing="0">
+          <tr><th>Alert</th><td>{{ .CommonLabels.alertname }}</td></tr>
+          <tr><th>Severity</th><td>{{ .CommonLabels.severity }}</td></tr>
+          <tr><th>Description</th><td>{{ .CommonAnnotations.summary }}</td></tr>
+          </table>
+          
+          {{ range .Alerts }}
+          <h3>Critical Alert Details</h3>
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <table border="1" cellpadding="5" cellspacing="0">
+          {{ range .Labels.SortedPairs }}
+          <tr><th>{{ .Name }}</th><td>{{ .Value }}</td></tr>
+          {{ end }}
+          </table>
+          {{ end }}
+    
+    slack_configs:
+      - api_url: '{{ template "slack_api_url" . }}'
+        channel: '#data-alerts'
+        username: 'Alertmanager'
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        title: '🚨 {{ .CommonLabels.alertname }} - {{ .CommonLabels.severity }}'
+        text: |
+          *Description:* {{ .CommonAnnotations.summary }}
+          {{ range .Alerts }}
+          *Labels:*
+          {{ range .Labels.SortedPairs }} • {{ .Name }}: {{ .Value }}
+          {{ end }}
+          {{ end }}
+        fallback: '{{ .CommonLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        icon_emoji: ':boom:'
+        send_resolved: true
+  
+  - name: 'warning_alerts'
+    email_configs:
+      - to: 'data-team@example.com'
+        headers:
+          subject: '⚠️ WARNING NYC TLC Data Platform Alert: {{ .CommonLabels.alertname }}'
+        html: |
+          <h2>⚠️ WARNING ALERT</h2>
+          <h3>NYC TLC Data Platform</h3>
+          <table border="1" cellpadding="5" cellspacing="0">
+          <tr><th>Alert</th><td>{{ .CommonLabels.alertname }}</td></tr>
+          <tr><th>Severity</th><td>{{ .CommonLabels.severity }}</td></tr>
+          <tr><th>Description</th><td>{{ .CommonAnnotations.summary }}</td></tr>
+          </table>
+          
+          {{ range .Alerts }}
+          <h4>Warning Details</h4>
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <table border="1" cellpadding="5" cellspacing="0">
+          {{ range .Labels.SortedPairs }}
+          <tr><th>{{ .Name }}</th><td>{{ .Value }}</td></tr>
+          {{ end }}
+          </table>
+          {{ end }}
+  
+  - name: 'airflow_alerts'
+    email_configs:
+      - to: 'data-team@example.com,airflow-admin@example.com'
+        headers:
+          subject: 'Airflow Alert: {{ .CommonLabels.alertname }}'
+        html: |
+          <h2>Airflow System Alert</h2>
+          <table border="1" cellpadding="5" cellspacing="0">
+          <tr><th>Alert</th><td>{{ .CommonLabels.alertname }}</td></tr>
+          <tr><th>Severity</th><td>{{ .CommonLabels.severity }}</td></tr>
+          <tr><th>Description</th><td>{{ .CommonAnnotations.summary }}</td></tr>
+          </table>
+          
+          {{ range .Alerts }}
+          <h3>Airflow Alert Details</h3>
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <table border="1" cellpadding="5" cellspacing="0">
+          {{ range .Labels.SortedPairs }}
+          <tr><th>{{ .Name }}</th><td>{{ .Value }}</td></tr>
+          {{ end }}
+          </table>
+          {{ end }}
+    
+    slack_configs:
+      - api_url: '{{ template "slack_api_url" . }}'
+        channel: '#airflow-alerts'
+        username: 'Airflow Monitor'
+        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
+        title: '{{ .CommonLabels.alertname }} - Airflow'
+        text: |
+          *Description:* {{ .CommonAnnotations.summary }}
+          {{ range .Alerts }}
+          *Labels:*
+          {{ range .Labels.SortedPairs }} • {{ .Name }}: {{ .Value }}
+          {{ end }}
+          {{ end }}
+        fallback: '{{ .CommonLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        icon_emoji: ':airflow:'
+        send_resolved: true
+
+  - name: 's3_alerts'
+    email_configs:
+      - to: 'data-team@example.com,infra-team@example.com'
+        headers:
+          subject: 'S3 Alert: {{ .CommonLabels.alertname }}'
+        html: |
+          <h2>S3 Storage Alert</h2>
+          <table border="1" cellpadding="5" cellspacing="0">
+          <tr><th>Alert</th><td>{{ .CommonLabels.alertname }}</td></tr>
+          <tr><th>Severity</th><td>{{ .CommonLabels.severity }}</td></tr>
+          <tr><th>Description</th><td>{{ .CommonAnnotations.summary }}</td></tr>
+          </table>
+          
+          {{ range .Alerts }}
+          <h3>S3 Alert Details</h3>
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <table border="1" cellpadding="5" cellspacing="0">
+          {{ range .Labels.SortedPairs }}
+          <tr><th>{{ .Name }}</th><td>{{ .Value }}</td></tr>
+          {{ end }}
+          </table>
+          {{ end }}
+    
+    slack_configs:
+      - api_url: '{{ template "slack_api_url" . }}'
+        channel: '#s3-alerts'
+        username: 'S3 Monitor'
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        title: '{{ .CommonLabels.alertname }} - S3'
+        text: |
+          *Description:* {{ .CommonAnnotations.summary }}
+          {{ range .Alerts }}
+          *Labels:*
+          {{ range .Labels.SortedPairs }} • {{ .Name }}: {{ .Value }}
+          {{ end }}
+          {{ end }}
+        fallback: '{{ .CommonLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        icon_emoji: ':s3:'
+        send_resolved: true
+
+  - name: 'rds_alerts'
+    email_configs:
+      - to: 'data-team@example.com,db-team@example.com'
+        headers:
+          subject: 'RDS Alert: {{ .CommonLabels.alertname }}'
+        html: |
+          <h2>RDS Database Alert</h2>
+          <table border="1" cellpadding="5" cellspacing="0">
+          <tr><th>Alert</th><td>{{ .CommonLabels.alertname }}</td></tr>
+          <tr><th>Severity</th><td>{{ .CommonLabels.severity }}</td></tr>
+          <tr><th>Description</th><td>{{ .CommonAnnotations.summary }}</td></tr>
+          </table>
+          
+          {{ range .Alerts }}
+          <h3>RDS Alert Details</h3>
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <table border="1" cellpadding="5" cellspacing="0">
+          {{ range .Labels.SortedPairs }}
+          <tr><th>{{ .Name }}</th><td>{{ .Value }}</td></tr>
+          {{ end }}
+          </table>
+          {{ end }}
+    
+    slack_configs:
+      - api_url: '{{ template "slack_api_url" . }}'
+        channel: '#rds-alerts'
+        username: 'RDS Monitor'
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        title: '{{ .CommonLabels.alertname }} - RDS'
+        text: |
+          *Description:* {{ .CommonAnnotations.summary }}
+          {{ range .Alerts }}
+          *Labels:*
+          {{ range .Labels.SortedPairs }} • {{ .Name }}: {{ .Value }}
+          {{ end }}
+          {{ end }}
+        fallback: '{{ .CommonLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        icon_emoji: ':database:'
+        send_resolved: true
+
+# Templates for customizing notification content
+templates:
+  - '/etc/alertmanager/template/*.tmpl'

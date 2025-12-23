@@ -1,0 +1,92 @@
+# Node Exporter configuration
+# This configuration is used to customize the metrics collected by Node Exporter
+
+# Collectors to enable (by default, most are enabled)
+collector:
+  # Enable all collectors by default
+  enabled: 
+    - cpu
+    - diskstats
+    - filefd
+    - filesystem
+    - loadavg
+    - meminfo
+    - netdev
+    - netstat
+    - stat
+    - time
+    - vmstat
+    - conntrack
+    - entropy
+    - filefd
+    - ksmd
+    - systemd
+    - tcpstat
+    - pressure
+    - udp_queues
+    - mdadm
+    - drbd
+    - btrfs
+    - wifi
+    - hwmon
+    - qdisc
+
+# Collector-specific settings
+collector.cpu:
+  # Enable CPU time statistics
+  enable_cpu_info: true
+
+collector.filesystem:
+  # Enable filesystem statistics
+  ignored_mount_points: "^/(sys|proc|dev|run)($|/)"
+  ignored_fss: "^(sysfs|procfs|tmpfs|devpts|debugfs|tracefs|securityfs|bpf|cgroup2?)$"
+
+collector.netstat:
+  # Enable netstat statistics
+  fields: "^(.*_(Sent|Recv|Drop|Error|Packets|Bytes|CsumError))$"
+
+collector.systemd:
+  # Enable systemd statistics
+  enable_task_metrics: true
+  enable_reloading: true
+
+collector.tcpstat:
+  # Enable TCP statistics
+  protocols: ["tcp", "tcp6"]
+
+collector.vmstat:
+  # Enable VM statistics
+  fields: "^(pgsteal_(kswapd|direct)_\\w+|pgscan_\\w+|pgactivate|pgdeactivate|pgfault|pgmajfault|pgrefill_\\w+|pginodesteal|pgslightly_reclaim|pgfree_\\w+)$"
+
+collector.pressure:
+  # Enable pressure stall information
+  enable: true
+
+collector.mdadm:
+  # Enable RAID statistics
+  enabled: true
+
+collector.hwmon:
+  # Enable hardware monitoring
+  enabled: true
+
+collector.qdisc:
+  # Enable queueing discipline statistics
+  enabled: true
+
+# Web server settings
+web:
+  # Address to bind to
+  listen_address: ":9100"
+  
+  # Maximum connections
+  max_connections: 1024
+  
+  # TLS configuration (disabled by default)
+  tls_server_config:
+    cert_file: ""
+    key_file: ""
+  
+  # HTTP basic auth (disabled by default)
+  http_server_config:
+    basic_auth_users: {}
