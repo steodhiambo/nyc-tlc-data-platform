@@ -1,4 +1,4 @@
--- models/staging/stg_yellow_tripdata.sql
+-- models/staging/stg_green_tripdata.sql
 {{ config(
     materialized='view',
     schema='staging'
@@ -6,14 +6,12 @@
 
 SELECT
     vendor_id,
-    tpep_pickup_datetime AS pickup_datetime,
-    tpep_dropoff_datetime AS dropoff_datetime,
+    lpep_pickup_datetime AS pickup_datetime,
+    lpep_dropoff_datetime AS dropoff_datetime,
     passenger_count,
     trip_distance,
     pickup_longitude,
     pickup_latitude,
-    rate_code,
-    store_and_fwd_flag,
     dropoff_longitude,
     dropoff_latitude,
     payment_type,
@@ -30,5 +28,5 @@ SELECT
     month,
     loaded_at,
     source_file
-FROM {{ source('raw', 'yellow_tripdata') }}
+FROM {{ source('raw', 'green_tripdata') }}
 WHERE pickup_datetime >= '2020-01-01'  -- Filter for recent data

@@ -1,0 +1,307 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: yellow_tripdata
+        description: Raw yellow taxi trip data from NYC TLC
+        columns:
+          - name: vendor_id
+            description: A code indicating the TPEP provider that provided the record
+            tests:
+              - not_null
+              - accepted_values:
+                  values: [1, 2]
+
+          - name: tpep_pickup_datetime
+            description: The date and time when the meter was engaged
+            tests:
+              - not_null
+              - dbt_utils.recency:
+                  datepart: day
+                  field: tpep_pickup_datetime
+                  interval: 30
+
+          - name: tpep_dropoff_datetime
+            description: The date and time when the meter was disengaged
+            tests:
+              - not_null
+
+          - name: passenger_count
+            description: The number of passengers in the vehicle
+            tests:
+              - not_null
+              - dbt_utils.relationships:
+                  to: ref('dim_passenger_types')
+                  field: passenger_type_id
+
+          - name: trip_distance
+            description: The elapsed trip distance in miles
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 100
+
+          - name: pickup_longitude
+            description: Longitude where the meter was engaged
+            tests:
+              - not_null
+
+          - name: pickup_latitude
+            description: Latitude where the meter was engaged
+            tests:
+              - not_null
+
+          - name: rate_code
+            description: The final rate code in effect at the end of the trip
+            tests:
+              - not_null
+
+          - name: store_and_fwd_flag
+            description: This flag indicates whether the trip record was held in vehicle
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['Y', 'N']
+
+          - name: dropoff_longitude
+            description: Longitude where the meter was disengaged
+            tests:
+              - not_null
+
+          - name: dropoff_latitude
+            description: Latitude where the meter was disengaged
+            tests:
+              - not_null
+
+          - name: payment_type
+            description: A numeric code signifying how the passenger paid for the trip
+            tests:
+              - not_null
+              - accepted_values:
+                  values: [1, 2, 3, 4, 5, 6]
+
+          - name: fare_amount
+            description: The time-and-distance fare calculated by the meter
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1000
+
+          - name: extra
+            description: Miscellaneous extras and surcharges
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 100
+
+          - name: mta_tax
+            description: $0.50 MTA tax that is automatically triggered based on the meter
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1
+
+          - name: tip_amount
+            description: Tip amount
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1000
+
+          - name: tolls_amount
+            description: Total amount of all tolls paid in trip
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 100
+
+          - name: improvement_surcharge
+            description: $0.30 improvement surcharge assessed trips at the flag drop
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1
+
+          - name: total_amount
+            description: The total amount charged to passengers
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 2000
+
+          - name: congestion_surcharge
+            description: Congestion surcharge
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 50
+
+          - name: airport_fee
+            description: Airport fee
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 10
+
+      - name: green_tripdata
+        description: Raw green taxi trip data from NYC TLC
+        columns:
+          - name: vendor_id
+            description: A code indicating the TPEP provider that provided the record
+            tests:
+              - not_null
+              - accepted_values:
+                  values: [1, 2]
+
+          - name: lpep_pickup_datetime
+            description: The date and time when the meter was engaged
+            tests:
+              - not_null
+              - dbt_utils.recency:
+                  datepart: day
+                  field: lpep_pickup_datetime
+                  interval: 30
+
+          - name: lpep_dropoff_datetime
+            description: The date and time when the meter was disengaged
+            tests:
+              - not_null
+
+          - name: passenger_count
+            description: The number of passengers in the vehicle
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 10
+
+          - name: trip_distance
+            description: The elapsed trip distance in miles
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 100
+
+          - name: pickup_longitude
+            description: Longitude where the meter was engaged
+            tests:
+              - not_null
+
+          - name: pickup_latitude
+            description: Latitude where the meter was engaged
+            tests:
+              - not_null
+
+          - name: dropoff_longitude
+            description: Longitude where the meter was disengaged
+            tests:
+              - not_null
+
+          - name: dropoff_latitude
+            description: Latitude where the meter was disengaged
+            tests:
+              - not_null
+
+          - name: payment_type
+            description: A numeric code signifying how the passenger paid for the trip
+            tests:
+              - not_null
+              - accepted_values:
+                  values: [1, 2, 3, 4, 5, 6]
+
+          - name: fare_amount
+            description: The time-and-distance fare calculated by the meter
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1000
+
+          - name: extra
+            description: Miscellaneous extras and surcharges
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 100
+
+          - name: mta_tax
+            description: $0.50 MTA tax that is automatically triggered based on the meter
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1
+
+          - name: tip_amount
+            description: Tip amount
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1000
+
+          - name: tolls_amount
+            description: Total amount of all tolls paid in trip
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 100
+
+          - name: improvement_surcharge
+            description: $0.30 improvement surcharge assessed trips at the flag drop
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1
+
+          - name: total_amount
+            description: The total amount charged to passengers
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 2000
+
+          - name: congestion_surcharge
+            description: Congestion surcharge
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 50
+
+          - name: airport_fee
+            description: Airport fee
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 10
+
+      - name: taxi_zone_lookup
+        description: Taxi zone lookup table with location information
+        columns:
+          - name: location_id
+            description: Unique identifier for the taxi zone
+            tests:
+              - not_null
+              - unique
+
+          - name: borough
+            description: Borough where the taxi zone is located
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['Manhattan', 'Bronx', 'Brooklyn', 'Queens', 'Staten Island', 'EWR']
+
+          - name: zone
+            description: Name of the taxi zone
+            tests:
+              - not_null
+
+          - name: service_zone
+            description: Service zone classification
+            tests:
+              - not_null
