@@ -1,0 +1,71 @@
+# Welcome to Great Expectations! Always know what to expect from your data.
+#
+version: 3.0
+config_version: 3.0
+
+# Configure how Great Expectations stores validation results, data docs, etc.
+stores:
+  # Store validation results in JSON
+  validations_store:
+    class_name: ValidationsStore
+    store_backend:
+      class_name: TupleFilesystemStoreBackend
+      base_directory: /home/steodhiambo/nyc-tlc-data-platform/great_expectations/validations/
+
+  # Store expectations in JSON
+  expectations_store:
+    class_name: ExpectationsStore
+    store_backend:
+      class_name: TupleFilesystemStoreBackend
+      base_directory: /home/steodhiambo/nyc-tlc-data-platform/great_expectations/expectations/
+
+  # Store data docs in HTML
+  evaluation_parameter_store:
+    class_name: EvaluationParameterStore
+
+# Set up data docs sites to display validation results
+data_docs_sites:
+  local_site:
+    class_name: SiteBuilder
+    store_backend:
+      class_name: TupleFilesystemStoreBackend
+      base_directory: /home/steodhiambo/nyc-tlc-data-platform/great_expectations/data_docs/local/
+    site_index_builder:
+      class_name: DefaultSiteIndexBuilder
+
+# Configure how Great Expectations connects to your data sources
+datasources:
+  nyc_tlc_postgres:
+    class_name: Datasource
+    execution_engine:
+      class_name: SqlAlchemyExecutionEngine
+      connection_string: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
+    data_connectors:
+      default_runtime_connector:
+        class_name: RuntimeDataConnector
+        batch_identifiers:
+          - default_identifier_name
+      default_inferred_data_connector_name:
+        class_name: InferredAssetSqlDataConnector
+        name: whole_table
+        include_schema_name: true
+
+# Configure validation operators that orchestrate the validation process
+validation_operators:
+  action_list_operator:
+    class_name: ActionListValidationOperator
+    actions:
+      store_validation_result:
+        class_name: StoreValidationResultAction
+        target_store_name: validations_store
+      store_evaluation_params:
+        class_name: StoreEvaluationParametersAction
+        target_store_name: evaluation_parameter_store
+      update_data_docs:
+        class_name: UpdateDataDocsAction
+        site_names:
+          - local_site
+
+# Configure notification actions for validation results
+anonymous_usage_statistics:
+  enabled: false
