@@ -1,0 +1,70 @@
+site_name: NYC TLC Data Platform Documentation
+site_url: https://nyc-tlc-data-platform.com/docs
+repo_url: https://github.com/your-org/nyc-tlc-data-platform
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/lightbulb
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - navigation.top
+
+plugins:
+  - search
+  - mermaid2
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+
+nav:
+  - Home: index.md
+  - Architecture:
+    - Overview: architecture/overview.md
+    - Data Flow: architecture/data_flow.md
+    - Components: architecture/components.md
+  - Data Model:
+    - Schema: data_model/schema.md
+    - Dimensions: data_model/dimensions.md
+    - Facts: data_model/facts.md
+  - Data Quality:
+    - Overview: data_quality/overview.md
+    - Great Expectations: data_quality/great_expectations.md
+    - Monitoring: data_quality/monitoring.md
+  - Governance:
+    - Policies: governance/policies.md
+    - Lineage: governance/lineage.md
+    - Access Control: governance/access_control.md
+  - Development:
+    - Setup: development/setup.md
+    - DAGs: development/dags.md
+    - Testing: development/testing.md
+  - Operations:
+    - Monitoring: operations/monitoring.md
+    - Alerting: operations/alerting.md
+    - Performance: operations/performance.md
+  - API Reference: api_reference.md
+  - Glossary: glossary.md
