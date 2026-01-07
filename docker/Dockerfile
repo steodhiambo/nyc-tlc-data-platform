@@ -24,6 +24,15 @@ USER airflow
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy configuration module
+COPY config/ /opt/airflow/config/
+
+# Copy utility modules
+COPY utils/ /opt/airflow/utils/
+
+# Copy Great Expectations configuration
+COPY great_expectations/ /opt/airflow/great_expectations/
+
 # Copy DAGs
 COPY dags/ /opt/airflow/dags/
 
