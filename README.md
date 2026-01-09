@@ -122,7 +122,9 @@ python scripts/taxi_zone_downloader.py
 
 The platform includes several Airflow DAGs for ETL and monitoring:
 
-- **nyc_tlc_etl_pipeline**: Processes Yellow Taxi data
+- **nyc_tlc_etl_pipeline**: Processes Yellow Taxi data using traditional ETL approach
+- **nyc_tlc_elt_pipeline**: Processes data using ELT approach (Extract, Load, Transform)
+- **nyc_tlc_improved_elt_pipeline**: Enhanced ELT approach with database-side transformations
 - **nyc_tlc_green_taxi_etl_pipeline**: Processes Green Taxi data
 - **nyc_tlc_data_quality_monitoring**: Monitors data quality and sends alerts
 
